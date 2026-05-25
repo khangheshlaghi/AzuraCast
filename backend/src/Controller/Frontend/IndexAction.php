@@ -37,7 +37,7 @@ final class IndexAction implements SingleActionInterface
                 return $response->withRedirect($homepageRedirect, 302);
             }
 
-            return $response->withRedirect($request->getRouter()->named('account:login'));
+            return $response->withRedirect($request->getRouter()->named('radio:home'));
         }
     }
 }

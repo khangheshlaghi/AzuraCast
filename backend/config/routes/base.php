@@ -11,6 +11,9 @@ return static function (RouteCollectorProxy $app) {
     $app->get('/', Controller\Frontend\IndexAction::class)
         ->setName('home');
 
+    $app->get('/radio', Controller\Frontend\HiTechRadioAction::class)
+        ->setName('radio:home');
+
     $app->get('/logout', Controller\Frontend\Account\LogoutAction::class)
         ->setName('account:logout')
         ->add(Middleware\RequireLogin::class);
