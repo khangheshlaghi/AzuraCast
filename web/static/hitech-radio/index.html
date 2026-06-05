@@ -11,7 +11,13 @@
         :root {
             --black: #000000;
             --off-white: #ebe6e1;
-            --orange: #ff5c28;
+            --jade: #3a9b78;
+            --jade-dark: #2d7d62;
+            --switch-track-w: 7rem;
+            --switch-track-h: 3rem;
+            --switch-knob-size: 3rem;
+            --switch-travel: calc(var(--switch-track-w) - var(--switch-knob-size));
+            --switch-ease: cubic-bezier(0.87, 0, 0.13, 1);
             --border: 2px solid var(--black);
             --border-thick: 3px solid var(--black);
             --header-h: 4.5rem;
@@ -68,7 +74,7 @@
         .logo-mark {
             width: 1.15rem;
             height: 1.15rem;
-            background: var(--orange);
+            background: var(--jade);
             border: var(--border);
             flex-shrink: 0;
         }
@@ -183,49 +189,67 @@
 
         .nav-item .switch-btn {
             display: block;
-            width: 7rem;
-            height: 3rem;
+            width: var(--switch-track-w);
+            height: var(--switch-track-h);
             border: var(--border);
-            background: transparent;
+            background: var(--off-white);
             position: relative;
             cursor: pointer;
             padding: 0;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        /* Center line — two halves like a real mixer channel */
+        .nav-item .switch-btn::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: var(--border);
+            background: var(--black);
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         @media (min-width: 1024px) {
             .nav-item .switch-btn {
-                width: 7rem;
-                height: 3rem;
                 border-width: 3px;
+            }
+            .nav-item .switch-btn::after {
+                width: 3px;
             }
         }
 
+        /* Fader thumb: OFF = left & empty, ON = slides right & jade */
         .switch-knob {
             position: absolute;
-            top: -2px;
-            left: -2px;
-            width: 3rem;
-            height: 3rem;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            width: var(--switch-knob-size);
+            height: 100%;
             border: var(--border);
             background: transparent;
-            transition: background 0.3s cubic-bezier(0.87, 0, 0.13, 1);
             pointer-events: none;
+            transition:
+                left 0.48s var(--switch-ease),
+                background 0.38s ease,
+                box-shadow 0.38s ease;
         }
 
         @media (min-width: 1024px) {
             .switch-knob {
-                width: 3rem;
-                height: 3rem;
-                top: -3px;
-                left: -3px;
                 border-width: 3px;
             }
         }
 
-        .nav-item:hover .switch-knob,
         .nav-item.is-active .switch-knob {
-            background: var(--black);
+            left: var(--switch-travel);
+            background: var(--jade);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
         }
 
         .nav-label {
@@ -260,10 +284,24 @@
 
         .mobile-nav-panel .nav-list { gap: 2.5rem; }
         .mobile-nav-panel .nav-item .nav-label { opacity: 1; color: var(--off-white); }
-        .mobile-nav-panel .switch-btn { border-color: var(--off-white); }
-        .mobile-nav-panel .switch-knob { border-color: var(--off-white); }
-        .mobile-nav-panel .nav-item.is-active .switch-knob,
-        .mobile-nav-panel .nav-item:hover .switch-knob { background: var(--off-white); }
+        .mobile-nav-panel .switch-btn {
+            border-color: var(--off-white);
+            background: var(--black);
+        }
+
+        .mobile-nav-panel .switch-btn::after {
+            background: var(--off-white);
+        }
+
+        .mobile-nav-panel .switch-knob {
+            border-color: var(--off-white);
+        }
+
+        .mobile-nav-panel .nav-item.is-active .switch-knob {
+            left: var(--switch-travel);
+            background: var(--jade);
+            border-color: var(--black);
+        }
 
         /* ── Layout ── */
         .page-body {
@@ -337,7 +375,7 @@
 
         .live-bars span {
             width: 6px;
-            background: var(--orange);
+            background: var(--jade);
             animation: bar 0.5s ease-in-out infinite alternate;
         }
 
@@ -360,7 +398,7 @@
         .player-bar-play {
             width: 3rem;
             flex-shrink: 0;
-            background: var(--orange);
+            background: var(--jade);
             border: none;
             border-right: var(--border);
             cursor: pointer;
@@ -370,9 +408,13 @@
             transition: background 0.2s, color 0.2s;
         }
 
-        .player-bar-play:hover,
+        .player-bar-play:hover {
+            background: var(--jade-dark);
+            color: var(--off-white);
+        }
+
         .player-bar-play.is-playing {
-            background: var(--black);
+            background: var(--jade-dark);
             color: var(--off-white);
         }
 
@@ -410,7 +452,7 @@
 
         .player-bar-mode:hover,
         .player-bar-mode.is-open {
-            background: var(--black);
+            background: var(--jade-dark);
             color: var(--off-white);
         }
 
@@ -742,11 +784,20 @@
         tickClock();
         setInterval(tickClock, 1000);
 
-        /* Section switching */
-        function goToSection(name) {
+        /* Section switching + mixer switch state */
+        function syncSwitchButtons(activeSection) {
             document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.toggle('is-active', el.dataset.section === name);
+                const on = el.dataset.section === activeSection;
+                el.classList.toggle('is-active', on);
+                const btn = el.querySelector('.switch-btn');
+                if (btn) {
+                    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                }
             });
+        }
+
+        function goToSection(name) {
+            syncSwitchButtons(name);
             document.querySelectorAll('.panel').forEach(p => {
                 p.classList.toggle('is-active', p.dataset.panel === name);
             });
@@ -755,7 +806,10 @@
         }
 
         document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => goToSection(item.dataset.section));
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                goToSection(item.dataset.section);
+            });
         });
 
         document.querySelectorAll('[data-section-link]').forEach(a => {
@@ -767,7 +821,13 @@
 
         if (location.hash) {
             const s = location.hash.slice(1);
-            if (document.querySelector(`[data-section="${s}"]`)) goToSection(s);
+            if (document.querySelector(`[data-section="${s}"]`)) {
+                goToSection(s);
+            } else {
+                syncSwitchButtons('live');
+            }
+        } else {
+            syncSwitchButtons('live');
         }
 
         /* Mobile menu */
